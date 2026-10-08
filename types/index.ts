@@ -14,6 +14,7 @@ export type ShapeKind =
   | "prism"
   | "capsule"
   | "prism-pyramid"
+  | "hollow-frustum"
   | "portal";
 
 export interface ShapeSpec {
@@ -43,6 +44,11 @@ export interface Challenge {
   type: "numeric" | "code";
   unit?: string;
   inputLabel: string;
+  source?: {
+    label: string;
+    url: string;
+    note: string;
+  };
 }
 
 export interface Room {

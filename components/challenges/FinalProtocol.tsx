@@ -51,11 +51,11 @@ export function FinalProtocol({ room, challenge }: { room: Room; challenge: Chal
         <h1 className="title-outline mt-3 text-4xl sm:text-6xl">PORTAL DIMENSIONAL</h1>
       </div>
 
-      <div className={`relative my-8 ${phase === "closing" ? "flicker-hard" : ""}`}>
-        <PortalEffect stability={phase === "closed" ? 0 : stability} closing={phase !== "open"} size={380} />
-        <div className="mt-4 text-center font-mono">
-          <p className="text-[11px] tracking-[0.35em] text-ash">PORTAL STABILITY</p>
-          <motion.p key={stability} initial={{ scale: 1.3, opacity: 0.4 }} animate={{ scale: 1, opacity: 1 }} className="text-4xl font-bold text-flare">
+      <div className="portal-final-stage relative my-8">
+        <PortalEffect stability={phase === "closed" ? 0 : stability} closing={phase !== "open"} size={1100} />
+        <div className="portal-stability-hud font-mono">
+          <div><p className="text-[10px] tracking-[0.25em] text-ash">ESTABILIDADE DIMENSIONAL</p><p className="mt-1 text-xs text-bone/80">{phase === "closed" ? "Ruptura contida. Sinal interrompido." : phase === "closing" ? "Protocolo de contenção em andamento…" : "Contenção crítica. Aguardando sequência."}</p></div>
+          <motion.p key={stability} initial={{ opacity: 0.4 }} animate={{ opacity: 1 }} className="shrink-0 text-3xl font-bold text-flare sm:text-4xl">
             {phase === "closed" ? 0 : stability}%
           </motion.p>
         </div>

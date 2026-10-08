@@ -14,6 +14,7 @@ import { HawkinsTerminal } from "@/components/hawkins/HawkinsTerminal";
 import { GeometryViewer } from "@/components/geometry/GeometryViewer";
 import { playSound } from "@/hooks/useSound";
 import type { GameEvent } from "@/types";
+import { MissionCinematic } from "@/components/hawkins/MissionCinematic";
 
 export default function SalaPage() {
   const params = useParams<{ id: string }>();
@@ -22,14 +23,16 @@ export default function SalaPage() {
   const room = getRoom(id);
   const challenge = getRoomChallenge(id);
   const [overlay, setOverlay] = useState<GameEvent[] | null>(null);
+  const [openingDone, setOpeningDone] = useState(false);
   const status = state?.rooms[id]?.status ?? "bloqueado";
+  const showOpening = Boolean(state && id === "sala-01" && status === "disponivel" && !openingDone);
 
   useEffect(() => {
-    if (room && status === "disponivel") {
+    if (room && status === "disponivel" && !showOpening) {
       startRoom(room.id);
       playSound("door");
     }
-  }, [room, status, startRoom]);
+  }, [room, status, startRoom, showOpening]);
 
   if (!room || !challenge) {
     return (
@@ -56,6 +59,7 @@ export default function SalaPage() {
     );
   }
 
+  if (showOpening) return <MissionCinematic onComplete={() => setOpeningDone(true)} />;
   if (room.theme === "portal") return <FinalProtocol room={room} challenge={challenge} />;
 
   const lighting = room.theme === "tank" || room.theme === "observation" ? "cold" : room.theme === "control" ? "green" : "red";
@@ -114,9 +118,9 @@ function UndergroundRecords() {
       <p className="label mb-3">ANOTAÇÃO RASGADA — DR. M. ELLISON</p>
       <div className="paper relative rotate-[-1deg] p-5">
         <p className="typewriter text-sm leading-relaxed">
-          Reator, tanque, sensor. Tudo estava ligado desde o início. O que um retém, o outro absorve, e o terceiro devolve.
+          O metal do reator pode salvar a contenção. Na fundição, o volume da peça deve ser igual à soma dos volumes dos novos rolamentos.
           <br />
-          Os números estão com você — confira o arquivo de evidências.
+          Depois de restaurar o mecanismo, confira as marcações nas evidências para montar o protocolo final.
         </p>
         <span className="stamp absolute bottom-3 right-4 text-[10px] text-[#a01010]">RESTRICTED ACCESS</span>
       </div>

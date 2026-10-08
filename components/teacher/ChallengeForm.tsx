@@ -37,7 +37,7 @@ function Field({ label, children, full }: { label: string; children: React.React
   );
 }
 
-export function ChallengeForm({ initial, isNew, mode, onSave }: { initial: TeacherChallenge; isNew: boolean; mode: "demo" | "supabase" | "loading"; onSave: (c: TeacherChallenge, isNew: boolean) => Promise<void> }) {
+export function ChallengeForm({ initial, isNew, mode, onSave, complementary = false, returnHref = "/professor/desafios" }: { initial: TeacherChallenge; isNew: boolean; mode: "demo" | "supabase" | "loading"; onSave: (c: TeacherChallenge, isNew: boolean) => Promise<void>; complementary?: boolean; returnHref?: string }) {
   const router = useRouter();
   const [c, setC] = useState<TeacherChallenge>(initial);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +52,7 @@ export function ChallengeForm({ initial, isNew, mode, onSave }: { initial: Teach
     setError(null);
     try {
       await onSave(c, isNew);
-      router.push("/professor/desafios");
+      router.push(returnHref);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível salvar.");
       setSaving(false);
@@ -64,7 +64,8 @@ export function ChallengeForm({ initial, isNew, mode, onSave }: { initial: Teach
       <Field label="Título" full>
         <input className="input" value={c.title} onChange={(e) => set("title", e.target.value)} maxLength={120} />
       </Field>
-      <Field label="Sala">
+      {complementary && <p className="border border-term/30 bg-term/5 p-3 text-sm text-term sm:col-span-2">Ao acertar esta questão, o aluno recebe {c.xpReward} XP e recupera 1 coração, até o limite de 5. A recompensa é concedida uma vez por aluno.</p>}
+      <Field label={complementary ? "Sala de referência" : "Sala"}>
         <select className="input" value={c.roomId} onChange={(e) => set("roomId", e.target.value)}>
           {ROOMS.map((r) => (
             <option key={r.id} value={r.id}>
@@ -108,7 +109,7 @@ export function ChallengeForm({ initial, isNew, mode, onSave }: { initial: Teach
       <Field label="Tolerância">
         <input className="input" type="number" min={0} step="0.01" value={c.tolerance} onChange={(e) => set("tolerance", Number(e.target.value))} />
       </Field>
-      <Field label="Evidência">
+      {!complementary && <Field label="Evidência">
         <select className="input" value={c.evidenceId} onChange={(e) => set("evidenceId", e.target.value)}>
           <option value="">Nenhuma</option>
           {EVIDENCES.map((ev) => (
@@ -117,8 +118,8 @@ export function ChallengeForm({ initial, isNew, mode, onSave }: { initial: Teach
             </option>
           ))}
         </select>
-      </Field>
-      <Field label="Próxima sala">
+      </Field>}
+      {!complementary && <Field label="Próxima sala">
         <select className="input" value={c.nextRoomId} onChange={(e) => set("nextRoomId", e.target.value)}>
           <option value="">Automática (ordem do mapa)</option>
           {ROOMS.map((r) => (
@@ -127,7 +128,7 @@ export function ChallengeForm({ initial, isNew, mode, onSave }: { initial: Teach
             </option>
           ))}
         </select>
-      </Field>
+      </Field>}
       <Field label="Status">
         <select className="input" value={c.active ? "ativo" : "inativo"} onChange={(e) => set("active", e.target.value === "ativo")}>
           <option value="ativo">Ativo</option>
@@ -142,11 +143,11 @@ export function ChallengeForm({ initial, isNew, mode, onSave }: { initial: Teach
       )}
       {error && <p className="border border-flare/40 bg-rust/20 p-3 text-sm text-flare sm:col-span-2">{error}</p>}
       <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row sm:justify-end">
-        <button type="button" className="btn-ghost" onClick={() => router.push("/professor/desafios")}>
+        <button type="button" className="btn-ghost" onClick={() => router.push(returnHref)}>
           CANCELAR
         </button>
         <button className="btn-primary" disabled={saving}>
-          {saving ? "SALVANDO..." : "SALVAR DESAFIO"}
+          {saving ? "SALVANDO..." : complementary ? "SALVAR QUESTÃO COMPLEMENTAR" : "SALVAR DESAFIO"}
         </button>
       </div>
     </form>

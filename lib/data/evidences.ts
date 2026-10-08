@@ -8,9 +8,9 @@ export const EVIDENCES: Evidence[] = [
     subtitle: "CLASSIFIED",
     description: "Cartão de acesso magnético encontrado preso ao terminal da Sala de Controle.",
     content:
-      "Cartão de nível 07 pertencente ao Dr. M. Ellison. No verso, escrito à mão: “A capacidade do reator é a primeira chave.”",
+      "Cartão de nível 07 pertencente ao Dr. M. Ellison. No verso: “Registre a economia diária por agente. Essa reserva é a primeira chave.”",
     stamp: "CLASSIFIED",
-    tag: "VOLUME",
+    tag: "RESERVA",
     rare: false,
     roomId: "sala-01",
   },
@@ -21,9 +21,9 @@ export const EVIDENCES: Evidence[] = [
     subtitle: "RECOVERED FROM SECTOR B",
     description: "Documento lacrado dentro da caixa contaminada do Depósito Experimental.",
     content:
-      "“Revestimento externo calibrado. Toda a superfície da caixa foi tratada contra a substância. Não abrir fora do setor.”",
+      "“Registre a menor área de revestimento interno. Proteja o fundo e as paredes; a abertura superior deve permanecer livre.”",
     stamp: "CONFIDENTIAL",
-    tag: "SUPERFÍCIE",
+    tag: "REVESTIMENTO",
     rare: false,
     roomId: "sala-02",
   },
@@ -46,7 +46,7 @@ export const EVIDENCES: Evidence[] = [
     subtitle: "EXPERIMENT 011",
     description: "Relatório técnico ejetado pela máquina da Câmara de Testes.",
     content:
-      "“O amplificador geométrico atingiu volume operacional. Às 03:11 a leitura dimensional ultrapassou o limite. Recomendo o encerramento imediato do Experimento 011.”",
+      "“Registre a massa restante do núcleo, em gramas. Às 03:11 a leitura dimensional ultrapassou o limite. Recomendo encerrar o Experimento 011.”",
     stamp: "TOP SECRET",
     tag: "EXPERIMENTO",
     rare: false,

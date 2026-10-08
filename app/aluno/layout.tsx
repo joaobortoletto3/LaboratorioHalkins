@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, BookOpen, FileSearch, Home, Map, NotebookPen, Trophy, User } from "lucide-react";
+import { Award, BookOpen, FileSearch, Home, ListChecks, Map, NotebookPen, Trophy, User } from "lucide-react";
 import { HawkinsProvider, useHawkins } from "@/hooks/useHawkins";
 import { AppShell, type NavItem } from "@/components/layout/AppShell";
 import { StudentSidebarCard } from "@/components/layout/StudentSidebarCard";
@@ -12,6 +12,7 @@ import { corruptionLevel } from "@/lib/game";
 const NAV: NavItem[] = [
   { href: "/aluno/dashboard", label: "Início", icon: Home },
   { href: "/aluno/laboratorio", label: "Laboratório", icon: Map },
+  { href: "/aluno/questoes-complementares", label: "Questões Complementares", icon: ListChecks },
   { href: "/aluno/evidencias", label: "Evidências", icon: FileSearch },
   { href: "/aluno/anotacoes", label: "Anotações", icon: NotebookPen },
   { href: "/aluno/biblioteca", label: "Arquivo de Pesquisa", icon: BookOpen },

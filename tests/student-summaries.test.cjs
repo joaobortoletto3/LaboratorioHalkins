@@ -109,37 +109,37 @@ test("state query errors fail validation instead of losing saved progress", asyn
   await assert.rejects(buildState(client(fixture(1), "progress"), "student-0"), /Database unavailable/);
 });
 
-test("reactor accepts 480 and equivalent numeric answers", () => {
+test("reactor accepts the water saving answer with decimal notation and litres", () => {
   const { checkAnswer } = load("lib/server/validate");
   const { DEMO_ANSWER_KEY } = load("lib/server/answers");
-  for (const answer of ["480", "480,0", "480 cm³", "480cm3"]) {
+  for (const answer of ["50", "50,0", "50 L", "50l"]) {
     assert.equal(checkAnswer(DEMO_ANSWER_KEY["c-01"], answer), true);
   }
-  assert.equal(checkAnswer(DEMO_ANSWER_KEY["c-01"], "48"), false);
+  assert.equal(checkAnswer(DEMO_ANSWER_KEY["c-01"], "200"), false);
 });
 
-// Compute the answers independently from the dimensions in the public questions.
+// Independently solve each adapted ENEM problem using its public measurements.
 function calculatedAnswers() {
-  const { ROOMS, ALL_CHALLENGES } = load("lib/data/rooms");
-  const dims = (id) => ROOMS.find((r) => r.challengeId === id).shape.dims;
-  const datum = (id, index) => Number(ALL_CHALLENGES.find((c) => c.id === id).data[index].value.split(" ")[0]);
-  const cylinder = dims("c-01");
-  const box = dims("c-02");
-  const tank = dims("c-03");
-  const machine = dims("c-04");
-  const sphere = dims("c-05");
+  const { ALL_CHALLENGES } = load("lib/data/rooms");
+  const datum = (id, index) => Number(ALL_CHALLENGES.find((c) => c.id === id).data[index].value.split(" ")[0].replace(",", "."));
+  const projects = ALL_CHALLENGES.find((c) => c.id === "c-02").data.map((d) => d.value.replace(" m", "").split(" × ").map((v) => Number(v.replace(",", "."))));
+  const [shortSide, longSide, pi] = [0, 1, 2].map((i) => datum("c-03", i));
+  const coneHeight = datum("c-04", 0), coneRadius = datum("c-04", 1) / 2, smallRadius = datum("c-04", 2) / 2;
+  const smallHeight = coneHeight * smallRadius / coneRadius;
+  const conePi = datum("c-04", 4);
+  const remainingVolume = conePi * coneRadius ** 2 * coneHeight / 3 - conePi * smallRadius ** 2 * smallHeight / 3 - conePi * smallRadius ** 2 * (coneHeight - smallHeight);
   const answers = {
-    "c-01": datum("c-01", 2) * cylinder.r ** 2 * cylinder.h,
-    "c-02": 2 * (box.w * box.d + box.w * box.h + box.d * box.h),
-    "c-03": datum("c-03", 2) * tank.r ** 2 * tank.h + (2 / 3) * datum("c-03", 2) * tank.r ** 3,
-    "c-04": machine.a ** 2 * machine.h + machine.a ** 2 * machine.hp / 3,
-    "c-05": (4 / 3) * datum("c-05", 1) * sphere.r ** 3,
+    "c-01": datum("c-01", 4) - datum("c-01", 2) * datum("c-01", 0) ** 2 * datum("c-01", 1) * 1000 / (datum("c-01", 3) * datum("c-01", 5)),
+    "c-02": Math.min(...projects.map(([h, w, l]) => w * l + 2 * h * (w + l))),
+    "c-03": Math.max(pi * (shortSide / (2 * pi)) ** 2 * longSide, pi * (longSide / (2 * pi)) ** 2 * shortSide),
+    "c-04": Math.round(remainingVolume * datum("c-04", 3) * 10) / 10,
+    "c-05": datum("c-05", 3) / datum("c-05", 0) * (datum("c-05", 2) / datum("c-05", 1)) ** 3,
+    "c-06": datum("c-06", 0) ** 2 * datum("c-06", 1) / ((4 / 3) * (datum("c-06", 2) / 2) ** 3),
     "t-01": datum("t-01", 0) ** 3,
     "t-02": datum("t-02", 2) * datum("t-02", 0) ** 2 * datum("t-02", 1) / 3,
     "t-03": datum("t-03", 0) ** 2 * datum("t-03", 1) / 3,
   };
-  answers["c-06"] = answers["c-01"] - answers["c-03"] + answers["c-05"];
-  answers["f-011"] = `${answers["c-01"]}${answers["c-02"]}${answers["c-04"]}7B`;
+  answers["f-011"] = `${answers["c-01"]}${answers["c-02"]}${answers["c-04"]}7B`.replace(/[^A-Z0-9]/g, "");
   return answers;
 }
 
@@ -157,16 +157,16 @@ test("all ten questions have mathematically correct keys and reject incorrect an
     assert.equal(key.type, challenge.type, challenge.id);
     assert.equal(checkAnswer(key, String(expected)), true, challenge.id);
     if (challenge.type === "numeric") {
-      for (const raw of [` ${expected} `, `${expected},0`, `${expected}.0`, ...(challenge.unit ? [`${expected} ${challenge.unit}`, `${expected} ${challenge.unit.replace("³", "^3").replace("²", "^2")}`] : [])]) {
+      for (const raw of [` ${expected} `, String(expected).replace(".", ","), Number(expected).toFixed(2), ...(challenge.unit ? [`${expected} ${challenge.unit}`, `${expected} ${challenge.unit.replace("³", "^3").replace("²", "^2")}`] : [])]) {
         assert.equal(checkAnswer(key, raw), true, `${challenge.id}: ${raw}`);
       }
       for (const raw of [String(expected + 1), String(expected - 1), "", "abc", "NaN", "Infinity", "0x" + expected.toString(16)]) {
         assert.equal(checkAnswer(key, raw), false, `${challenge.id}: ${raw}`);
       }
     } else {
-      assert.equal(checkAnswer(key, "480-352-228-7b"), true);
-      assert.equal(checkAnswer(key, "3524802287B"), false);
-      assert.equal(checkAnswer(key, "4803522287C"), false);
+      assert.equal(checkAnswer(key, "50-101-1296-7b"), true);
+      assert.equal(checkAnswer(key, "1015012967B"), false);
+      assert.equal(checkAnswer(key, "5010112967C"), false);
     }
   }
 });
@@ -182,6 +182,33 @@ test("Supabase seed matches all ten verified answer keys", () => {
     assert.equal(columns[10], `'${key.answer}'`, id);
     assert.equal(Number(columns[11]), key.tolerance, id);
   }
+});
+
+test("six story challenges cite official ENEM sources and keep detailed formulas in hints", () => {
+  const { CHALLENGES, ROOMS } = load("lib/data/rooms");
+  for (const challenge of CHALLENGES.filter((c) => c.type === "numeric")) {
+    assert.ok(challenge.source.label.includes("ENEM"), challenge.id);
+    assert.equal(new URL(challenge.source.url).hostname, "download.inep.gov.br");
+    assert.ok(challenge.hint.length > challenge.formulaHint.length, challenge.id);
+    assert.equal(ROOMS.find((r) => r.id === challenge.roomId).difficulty, challenge.difficulty);
+  }
+  assert.equal(CHALLENGES.filter((c) => c.source).length, 6);
+});
+
+test("verified records normalize litres, grams, decimal commas and trailing zeroes for the finale", () => {
+  const { createInitialState, correctAnswerFor } = load("lib/game");
+  const { checkAnswer } = load("lib/server/validate");
+  const { DEMO_ANSWER_KEY, DEMO_FINAL_KEYS } = load("lib/server/answers");
+  const state = createInitialState({ id: "test", name: "Aluno", email: "test@example.org" });
+  state.attempts = [
+    { challengeId: "c-01", answer: "50,00 L", correct: true },
+    { challengeId: "c-02", answer: "101 m²", correct: true },
+    { challengeId: "c-04", answer: "1296,000 g", correct: true },
+  ];
+  const sequence = ["c-01", "c-02", "c-04"].map((id) => correctAnswerFor(state, id)).join("") + "7B";
+  assert.equal(checkAnswer(DEMO_ANSWER_KEY["f-011"], sequence), true);
+  assert.ok(DEMO_FINAL_KEYS.some((key) => checkAnswer(key, "480-352-228-7B")));
+  assert.ok(DEMO_FINAL_KEYS.some((key) => checkAnswer(key, "480-101-1296-7B")));
 });
 
 test("all correct sector answers unlock the next room and close the case", () => {

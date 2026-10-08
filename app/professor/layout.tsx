@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gauge, Layers, Puzzle, Settings, Trophy, Users } from "lucide-react";
+import { Gauge, Layers, ListChecks, Puzzle, Settings, Trophy, Users } from "lucide-react";
 import { AppShell, type NavItem } from "@/components/layout/AppShell";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -10,6 +10,7 @@ const NAV: NavItem[] = [
   { href: "/professor/dashboard", label: "Central de Controle", icon: Gauge },
   { href: "/professor/alunos", label: "Alunos", icon: Users },
   { href: "/professor/desafios", label: "Desafios", icon: Puzzle },
+  { href: "/professor/questoes-complementares", label: "Questões Complementares", icon: ListChecks },
   { href: "/professor/setores", label: "Setores", icon: Layers },
   { href: "/professor/ranking", label: "Ranking", icon: Trophy },
   { href: "/professor/configuracoes", label: "Configurações", icon: Settings },

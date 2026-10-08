@@ -17,11 +17,13 @@ export function ChallengePanel({
   challenge,
   completed,
   onCorrect,
+  unavailable,
   tone = "green",
 }: {
   challenge: Challenge;
   completed: boolean;
   onCorrect?: (r: SubmitResult) => void;
+  unavailable?: string;
   tone?: "green" | "red";
 }) {
   const { state, submitAnswer } = useHawkins();
@@ -33,11 +35,12 @@ export function ChallengePanel({
 
   const lives = state?.profile.lives ?? 0;
   const isTraining = challenge.roomId === "treinamento";
-  const blocked = !isTraining && lives <= 0 && !completed;
+  const isComplementary = challenge.roomId === "complementares";
+  const blocked = !isTraining && !isComplementary && lives <= 0 && !completed;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!answer.trim() || sending) return;
+    if (!answer.trim() || sending || completed || unavailable || blocked) return;
     setSending(true);
     setResult(null);
     playSound("beep");
@@ -78,11 +81,16 @@ export function ChallengePanel({
 
       <p className="mb-2 text-base text-bone">{challenge.question}</p>
       <p className="mb-5 font-mono text-sm text-alert/90">{challenge.formulaHint}</p>
+      {challenge.source && <p className="mb-4 text-xs leading-relaxed text-ash"><a href={challenge.source.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-bone">{challenge.source.label}</a><br />{challenge.source.note}</p>}
+      {isComplementary && challenge.story.map((line, i) => <p key={i} className="mb-3 text-sm text-ash">{line}</p>)}
+      {isComplementary && <p className="mb-4 text-sm text-term">+{challenge.xpReward} XP e +1 coração ao acertar (máximo de 5 corações).</p>}
 
       {completed ? (
         <div className="border border-term/40 bg-term/10 p-4 font-mono text-sm text-term">
-          ✓ ACCESS GRANTED — este setor já foi validado.
+          {isComplementary ? "✓ Questão resolvida — recompensa já recebida." : "✓ ACCESS GRANTED — este setor já foi validado."}
         </div>
+      ) : unavailable ? (
+        <p className="border border-alert/40 bg-alert/10 p-4 text-sm text-alert">{unavailable}</p>
       ) : blocked ? (
         <div className="border border-flare/40 bg-rust/20 p-4">
           <p className="font-mono text-sm font-semibold tracking-[0.2em] text-flare">TENTATIVAS ESGOTADAS</p>
@@ -90,6 +98,7 @@ export function ChallengePanel({
           <Link href="/aluno/treinamento" className="btn-primary mt-4 !py-2 !text-xs">
             PROTOCOLO DE TREINAMENTO
           </Link>
+          <Link href="/aluno/questoes-complementares" className="btn-ghost mt-3 !py-2 !text-xs">QUESTÕES COMPLEMENTARES</Link>
         </div>
       ) : (
         <motion.form key={shake} onSubmit={submit} animate={shake ? { x: [0, -8, 8, -5, 5, 0] } : undefined} transition={{ duration: 0.4 }} className="space-y-3">
@@ -114,16 +123,16 @@ export function ChallengePanel({
       )}
 
       <AnimatePresence mode="wait">
-        {result && result.status !== "correct" && (
+        {result && (result.status !== "correct" || isComplementary) && (
           <motion.div
             key={result.title + result.message}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            role="alert"
-            className="mt-4 border border-flare/40 bg-rust/15 p-4"
+            role={result.status === "correct" ? "status" : "alert"}
+            className={cn("mt-4 border p-4", result.status === "correct" ? "border-term/40 bg-term/10" : "border-flare/40 bg-rust/15")}
           >
-            <p className="font-mono text-sm font-semibold tracking-[0.2em] text-flare">{result.title}</p>
+            <p className={cn("font-mono text-sm font-semibold tracking-[0.2em]", result.status === "correct" ? "text-term" : "text-flare")}>{result.title}</p>
             <p className="mt-1 text-sm text-ash">{result.message}</p>
           </motion.div>
         )}

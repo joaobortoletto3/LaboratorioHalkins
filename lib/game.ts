@@ -4,6 +4,7 @@ import { getEvidence } from "@/lib/data/evidences";
 import { levelFromXp } from "@/lib/levels";
 import { addDays, dayKey } from "@/lib/dates";
 import { uid } from "@/lib/utils";
+import { parseNumeric } from "@/lib/numeric";
 
 /** Lógica pura do jogo — compartilhada entre o modo demo (cliente) e o servidor (Supabase). Não contém respostas. */
 
@@ -202,5 +203,8 @@ export function corruptionLevel(s: GameState | null): number {
 }
 
 export function correctAnswerFor(s: GameState, challengeId: string): string | undefined {
-  return s.attempts.find((a) => a.challengeId === challengeId && a.correct)?.answer;
+  const answer = s.attempts.find((a) => a.challengeId === challengeId && a.correct)?.answer;
+  if (answer === undefined || getChallenge(challengeId)?.type !== "numeric") return answer;
+  const numeric = parseNumeric(answer);
+  return numeric === null ? answer : String(numeric);
 }

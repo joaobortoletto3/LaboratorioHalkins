@@ -26,6 +26,16 @@ export function ShapeFallback({ shape }: { shape: ShapeSpec }) {
             <path d="M60 70 V150 A55 16 0 0 0 170 150 V70" {...common} />
           </g>
         );
+      case "hollow-frustum":
+        return (
+          <g>
+            <path d="M88 55 L50 150 A65 20 0 0 0 180 150 L142 55" {...common} />
+            <ellipse cx="115" cy="55" rx="27" ry="9" {...common} />
+            <ellipse cx="115" cy="55" rx="24" ry="7" fill="rgba(5,5,7,0.9)" stroke={stroke} />
+            <path d="M91 55 V150 M139 55 V150" fill="none" stroke={stroke} strokeDasharray="4 4" />
+            <ellipse cx="115" cy="150" rx="24" ry="7" fill="none" stroke={stroke} strokeDasharray="4 4" />
+          </g>
+        );
       case "cone":
         return (
           <g>

@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 const KEY = "hawkins_sound";
 const EVENT = "hawkins-sound-change";
 
-export type SoundKind = "beep" | "success" | "error" | "alarm" | "door" | "static";
+export type SoundKind = "beep" | "success" | "error" | "alarm" | "door" | "static" | "rift" | "thunder";
 
 let ctx: AudioContext | null = null;
 
@@ -37,7 +37,7 @@ function tone(freq: number, dur: number, type: OscillatorType, gain = 0.05, dela
   o.stop(a.currentTime + delay + dur + 0.02);
 }
 
-function noise(dur: number, gain = 0.03) {
+function noise(dur: number, gain = 0.03, lowpass?: number) {
   const a = audio();
   if (!a) return;
   const buffer = a.createBuffer(1, a.sampleRate * dur, a.sampleRate);
@@ -47,12 +47,18 @@ function noise(dur: number, gain = 0.03) {
   const g = a.createGain();
   g.gain.value = gain;
   src.buffer = buffer;
-  src.connect(g).connect(a.destination);
+  if (lowpass) {
+    const filter = a.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = lowpass;
+    src.connect(filter).connect(g).connect(a.destination);
+  } else src.connect(g).connect(a.destination);
   src.start();
 }
 
 export function playSound(kind: SoundKind) {
   if (typeof window === "undefined" || localStorage.getItem(KEY) !== "on") return;
+  void audio()?.resume();
   switch (kind) {
     case "beep":
       tone(880, 0.08, "square", 0.03);
@@ -75,6 +81,15 @@ export function playSound(kind: SoundKind) {
       break;
     case "static":
       noise(0.5, 0.025);
+      break;
+    case "rift":
+      tone(42, 2.6, "sine", 0.09);
+      tone(63, 2.0, "triangle", 0.035, 0.2);
+      noise(1.8, 0.06, 420);
+      break;
+    case "thunder":
+      noise(1.6, 0.1, 650);
+      tone(36, 1.8, "sine", 0.1);
       break;
   }
 }

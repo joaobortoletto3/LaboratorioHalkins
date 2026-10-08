@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getAdminSupabase, getServerSupabase, SupabaseConfigurationError } from "@/lib/supabase/server";
-import { DEMO_ANSWER_KEY, type AnswerKey } from "@/lib/server/answers";
+import { DEMO_ANSWER_KEY, DEMO_FINAL_KEYS, type AnswerKey } from "@/lib/server/answers";
 import { BLOCKED, checkAnswer, feedback } from "@/lib/server/validate";
 import { buildState, persistDiff } from "@/lib/server/state";
-import { applyResult } from "@/lib/game";
+import { applyResult, correctAnswerFor } from "@/lib/game";
 import { getChallenge } from "@/lib/data/rooms";
-import type { ValidateResponse } from "@/types";
+import { isComplementaryChallenge } from "@/lib/complementary";
+import type { GameEvent, ValidateResponse } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   if (!isSupabaseConfigured) {
     const key = DEMO_ANSWER_KEY[challengeId];
     if (!key) return NextResponse.json({ error: "Desafio não encontrado." }, { status: 404 });
-    const correct = checkAnswer(key, answer);
+    const correct = challengeId === "f-011" ? DEMO_FINAL_KEYS.some((candidate) => checkAnswer(candidate, answer)) : checkAnswer(key, answer);
     return NextResponse.json<ValidateResponse>({ correct, ...feedback(correct, challengeId) });
   }
 
@@ -56,6 +57,32 @@ export async function POST(req: Request) {
     const before = await buildState(admin, userId);
     if (!before) return NextResponse.json({ error: "Perfil não encontrado." }, { status: 404 });
 
+    if (isComplementaryChallenge(challengeId)) {
+      if (before.profile.role !== "aluno") return NextResponse.json({ error: "Somente alunos podem responder às questões." }, { status: 403 });
+      const correct = checkAnswer({ answer: ch.correct_answer, tolerance: Number(ch.tolerance) || 0, type: ch.type }, answer);
+      const { data, error } = await admin.rpc("record_complementary_answer", {
+        p_user_id: userId, p_challenge_id: challengeId, p_answer: answer, p_correct: correct,
+      });
+      if (error) {
+        if (error.code === "PGRST202" || error.code === "42883") {
+          return NextResponse.json({ error: "Atualize o banco executando supabase/complementary-questions.sql para ativar as recompensas." }, { status: 503 });
+        }
+        throw error;
+      }
+      const outcome = data as { alreadyCompleted: boolean; events: GameEvent[] };
+      const state = await buildState(admin, userId);
+      if (!state) throw new Error("Perfil não encontrado após salvar resposta");
+      const restored = outcome.events.some((e) => e.type === "life");
+      const xp = outcome.events.find((e) => e.type === "xp");
+      return NextResponse.json<ValidateResponse>({
+        correct: outcome.alreadyCompleted || correct, state, events: outcome.events,
+        title: outcome.alreadyCompleted ? "QUESTÃO JÁ RESOLVIDA" : correct ? "RESPOSTA CORRETA" : "TENTE NOVAMENTE",
+        message: outcome.alreadyCompleted ? "Você já recebeu a recompensa desta questão."
+          : correct ? `Você ganhou ${xp?.type === "xp" ? xp.amount : 0} XP. ${restored ? "1 coração recuperado!" : "Seus corações já estão completos."}`
+          : "Revise o cálculo e tente novamente. Seus corações foram preservados.",
+      });
+    }
+
     const isTraining = challengeId.startsWith("t-");
     const roomId = getChallenge(challengeId)?.roomId;
     if (!isTraining && before.profile.lives <= 0) {
@@ -66,6 +93,13 @@ export async function POST(req: Request) {
     }
 
     const key: AnswerKey = { answer: ch.correct_answer, tolerance: Number(ch.tolerance) || 0, type: ch.type };
+    if (challengeId === "f-011") {
+      const records = ["c-01", "c-02", "c-04"].map((id) => correctAnswerFor(before, id));
+      if (records.some((value) => value === undefined) || !before.evidences.includes("ev-006")) {
+        return NextResponse.json({ error: "Recupere os registros e o crachá antes de fechar o portal." }, { status: 403 });
+      }
+      key.answer = `${records.join("")}7B`;
+    }
     const correct = checkAnswer(key, answer);
     const { state, events } = applyResult(before, challengeId, answer, correct);
     await persistDiff(admin, userId, before, state);

@@ -325,6 +325,60 @@ body {
   50% { transform: scale(1.04); filter: brightness(1.3); }
 }
 
+/* ---------- Câmara dimensional e abertura da missão ---------- */
+.portal-chamber {
+  position: relative; isolation: isolate; width: 100%; height: clamp(300px, 43vw, 530px);
+  margin: 0 auto; overflow: hidden; border: 1px solid rgba(255, 88, 52, 0.2); border-radius: 18px;
+  background: #05070b; box-shadow: 0 25px 80px rgba(0,0,0,.6), 0 0 55px rgba(140,22,10,.12);
+}
+.portal-chamber-wall { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 19%, #161920 19.2% 19.6%, transparent 20%), radial-gradient(ellipse at 50% 45%, #241a1c, #090c12 70%); }
+.portal-render { position: absolute; inset: 0; }
+.portal-fallback { position: absolute; inset: 0; }
+.portal-fallback-halo { position: absolute; inset: 5% 20%; background: radial-gradient(ellipse, rgba(238,53,17,.4), transparent 65%); filter: blur(28px); }
+.portal-fallback-rift { position: absolute; inset: 16% 35%; background: conic-gradient(from 40deg, #3b0505, #ffb081, #df2e17, #7c0b09, #ff7142, #ad1510, #3b0505); clip-path: polygon(48% 0, 66% 5%, 74% 14%, 86% 24%, 82% 33%, 95% 43%, 88% 59%, 80% 65%, 78% 82%, 58% 98%, 46% 94%, 33% 100%, 21% 84%, 20% 73%, 7% 57%, 12% 46%, 4% 31%, 18% 22%, 28% 9%); filter: drop-shadow(0 0 16px #ff3319); animation: portalBreath 7s ease-in-out infinite; }
+.portal-fallback-core { position: absolute; inset: 18% 37%; background: radial-gradient(ellipse at 40% 40%, #253346, #080a0e 65%); border-radius: 46% 54% 43% 57%; box-shadow: inset 0 0 20px #b52a14; }
+.portal-lightning { position: absolute; inset: 2% 13% 9%; pointer-events: none; mix-blend-mode: screen; }
+.portal-bolt { position: absolute; inset: 0; opacity: 0; animation: portalBolt var(--bolt-duration,8s) ease-out var(--bolt-delay,0s) infinite; }
+.portal-bolt svg { width: 100%; height: 100%; overflow: visible; }
+@keyframes portalBolt { 0%, 40%, 100% { opacity: .05; } 48% { opacity: .15; } 53% { opacity: .95; } 58% { opacity: .65; } 68% { opacity: .22; } 78% { opacity: .05; } }
+.portal-ground-fog { position: absolute; inset: 50% -20% -30%; pointer-events: none; opacity: .65; background: radial-gradient(ellipse at 30% 65%, rgba(109,126,145,.16), transparent 55%), radial-gradient(ellipse at 68% 56%, rgba(205,77,51,.15), transparent 45%); filter: blur(26px); animation: fogDrift 22s ease-in-out infinite alternate; }
+.portal-lens { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(1,3,7,.36) 68%, rgba(0,0,0,.85) 100%), linear-gradient(0deg, rgba(0,0,0,.6), transparent 28%); }
+.portal-film-grain { position: absolute; inset: 0; opacity: .09; pointer-events: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' opacity='.55' filter='url(%23n)'/></svg>"); }
+.portal-scene-caption { position: absolute; left: 24px; right: 24px; bottom: 18px; display: flex; justify-content: space-between; gap: 12px; font: 9px var(--font-mono); letter-spacing: .17em; color: #9a8d89; }
+.portal-stability-hud { display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: 680px; margin: 0 auto; padding: 20px 24px; border: 1px solid rgba(255,75,40,.18); border-top: 0; border-radius: 0 0 16px 16px; background: linear-gradient(120deg, #141113, #090b0f); }
+.portal-chamber--paused *, .portal-chamber--still * { animation-play-state: paused !important; }
+.portal-chamber--still .portal-bolt { animation: none; opacity: .3; }
+.mission-cinematic { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; padding: 0; margin: 0; border: 0; overflow: hidden; background: #030509; color: var(--bone); }
+.mission-cinematic::backdrop { background: #030509; }
+.mission-cinematic-scene { position: absolute; inset: 0; }
+.portal-chamber--cinematic { height: 100%; border: 0; border-radius: 0; }
+.mission-cinematic-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgba(2,3,7,.92), transparent 68%), linear-gradient(90deg, rgba(2,3,7,.55), transparent 60%); }
+.mission-letterbox { position: absolute; left: 0; right: 0; height: 7.5%; background: #020204; pointer-events: none; }
+.mission-letterbox--top { top: 0; }.mission-letterbox--bottom { bottom: 0; }
+.mission-cinematic-top { position: absolute; top: 9.5%; left: 5%; right: 5%; display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 10px var(--font-mono); letter-spacing: .17em; color: #9d9da8; }
+.mission-recording { margin-left: 20px; color: #df5a44; }
+.mission-cinematic-copy { position: absolute; left: 8%; right: 8%; bottom: 22%; animation: cinematicCopy .9s ease-out both; text-shadow: 0 2px 24px #000; }
+.mission-cinematic-label { font: 10px var(--font-mono); letter-spacing: .3em; color: #fa8e75; }
+.mission-cinematic-copy h1 { max-width: 900px; margin: 20px 0 12px; font-family: var(--font-serif); font-size: clamp(2rem,5vw,5.1rem); line-height: 1.1; letter-spacing: -.035em; }
+.mission-cinematic-copy > p:last-child { max-width: 650px; font-size: clamp(13px,1.25vw,18px); color: #b9b7bd; line-height: 1.7; }
+.mission-cinematic-bottom { position: absolute; left: 5%; right: 5%; bottom: 10%; display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.mission-timecode { font: 9px var(--font-mono); letter-spacing: .16em; color: #888891; }
+.mission-cinematic-progress { position: absolute; bottom: 7.5%; left: 0; right: 0; height: 2px; background: #e06648; transform-origin: left; transition: transform .1s linear; box-shadow: 0 0 12px #d83219; }
+@keyframes cinematicCopy { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@media(max-width: 640px) {
+  .portal-chamber:not(.portal-chamber--cinematic) { height: 320px; }
+  .portal-scene-caption span:last-child, .mission-recording { display: none; }
+  .portal-stability-hud { padding: 16px; }
+  .mission-cinematic-copy { bottom: 27%; left: 7%; right: 7%; }
+  .mission-cinematic-label { font-size: 8px; letter-spacing: .2em; }
+  .mission-cinematic-bottom { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .mission-cinematic-bottom button { align-self: flex-end; padding: 10px 14px; }
+}
+@media(prefers-reduced-motion: reduce) {
+  .portal-bolt { animation: none; opacity: .3; }
+  .mission-cinematic-copy { animation: none; }
+}
+
 /* ---------- Mundo Invertido: corrupção progressiva ---------- */
 [data-corruption="2"] .app-bg { background: radial-gradient(ellipse at 50% 110%, rgba(115, 0, 0, 0.22), transparent 60%), var(--void); }
 [data-corruption="3"] .app-bg { background: radial-gradient(ellipse at 50% 100%, rgba(115, 0, 0, 0.38), transparent 65%), #040304; }

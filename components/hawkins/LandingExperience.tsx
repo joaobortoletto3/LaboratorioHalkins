@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { HawkinsLogo } from "./HawkinsLogo";
 import { Particles } from "./Particles";
 import { VHSOverlay } from "./VHSOverlay";
@@ -11,10 +11,11 @@ import { UpsideFlash } from "./UpsideFlash";
 import { SoundToggle } from "./SoundToggle";
 import { Vines } from "./Vines";
 import { playSound } from "@/hooks/useSound";
+import { MissionCinematic } from "./MissionCinematic";
 
 export function LandingExperience() {
   const router = useRouter();
-  const [access, setAccess] = useState<null | "connecting" | "granted">(null);
+  const [access, setAccess] = useState<"/login" | "/cadastro" | null>(null);
   const [invaded, setInvaded] = useState(false);
 
   useEffect(() => {
@@ -24,9 +25,8 @@ export function LandingExperience() {
   }, []);
 
   const enter = (target: "/login" | "/cadastro") => {
-    setAccess("granted");
-    playSound("success");
-    router.push(target);
+    setAccess(target);
+    playSound("door");
   };
 
   return (
@@ -99,26 +99,7 @@ export function LandingExperience() {
         <span>EXPERIÊNCIA EDUCACIONAL DE GEOMETRIA ESPACIAL</span>
       </footer>
 
-      {/* transição de acesso */}
-      <AnimatePresence>
-        {access && (
-          <motion.div className="fixed inset-0 z-[80] flex items-center justify-center bg-void" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="crt w-[min(520px,90vw)] p-8 font-mono">
-              <p className="crt-text text-sm tracking-[0.25em]">
-                ACCESSING HAWKINS NETWORK...<span className="blink">▌</span>
-              </p>
-              <div className="mt-4 h-1 w-full bg-term/10">
-                <motion.div className="h-full bg-term" initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1.4 }} />
-              </div>
-              {access === "granted" && (
-                <motion.p initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="crt-text mt-6 text-2xl font-semibold tracking-[0.3em]">
-                  ACCESS GRANTED
-                </motion.p>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {access && <MissionCinematic onComplete={() => router.push(access)} />}
     </main>
   );
 }

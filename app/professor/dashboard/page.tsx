@@ -25,8 +25,8 @@ export default function ProfessorDashboard() {
   return (
     <div className="space-y-6">
       <HawkinsHeader code="CENTRAL DE CONTROLE — MONITORAMENTO DE CAMPO" title="Centro de Comando" subtitle="Acompanhe o avanço dos agentes no Incidente 011.">
-        <Link href="/professor/desafios/novo" className="btn-primary">
-          NOVO DESAFIO
+        <Link href="/professor/desafios/novo?complementar=1" className="btn-primary">
+          NOVA QUESTÃO COMPLEMENTAR
         </Link>
       </HawkinsHeader>
 

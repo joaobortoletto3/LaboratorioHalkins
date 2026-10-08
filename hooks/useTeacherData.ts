@@ -90,24 +90,28 @@ export function useTeacherChallenges() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch("/api/teacher/challenges", { cache: "no-store" });
       const json = (await res.json()) as { mode?: string; challenges?: TeacherChallenge[]; error?: string };
+      if (!res.ok) throw new Error(json.error ?? "Erro ao carregar desafios.");
       if (json.mode === "supabase") {
         setMode("supabase");
         if (json.challenges) setItems(json.challenges);
         else setError(json.error ?? "Erro ao carregar desafios.");
         return;
       }
-    } catch {
-      /* cai para demo */
-    }
-    setMode("demo");
-    try {
-      const raw = localStorage.getItem(DEMO_CH_KEY);
-      setItems(raw ? (JSON.parse(raw) as TeacherChallenge[]) : defaultDemoChallenges());
-    } catch {
-      setItems(defaultDemoChallenges());
+      if (json.mode !== "demo") throw new Error("Resposta inválida ao carregar desafios.");
+      setMode("demo");
+      try {
+        const raw = localStorage.getItem(DEMO_CH_KEY);
+        setItems(raw ? (JSON.parse(raw) as TeacherChallenge[]) : defaultDemoChallenges());
+      } catch {
+        setItems(defaultDemoChallenges());
+      }
+    } catch (err) {
+      setMode("supabase");
+      setError(err instanceof Error ? err.message : "Não foi possível carregar os desafios. Tente novamente.");
     }
   }, []);
 
@@ -122,6 +126,7 @@ export function useTeacherChallenges() {
 
   const save = useCallback(
     async (c: TeacherChallenge, isNew: boolean) => {
+      if (mode === "loading" || error) throw new Error(error ?? "Aguarde o carregamento dos desafios.");
       if (mode === "supabase") {
         const res = await fetch(isNew ? "/api/teacher/challenges" : `/api/teacher/challenges/${c.id}`, {
           method: isNew ? "POST" : "PUT",
@@ -136,7 +141,7 @@ export function useTeacherChallenges() {
       const list = raw ? (JSON.parse(raw) as TeacherChallenge[]) : defaultDemoChallenges();
       persistDemo(isNew ? [...list, c] : list.map((x) => (x.id === c.id ? c : x)));
     },
-    [mode, load],
+    [mode, load, error],
   );
 
   const remove = useCallback(

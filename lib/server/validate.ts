@@ -1,15 +1,10 @@
 import "server-only";
 import type { AnswerKey } from "./answers";
+import { parseNumeric } from "@/lib/numeric";
+export { parseNumeric } from "@/lib/numeric";
 
 export function normalizeCode(v: string): string {
   return v.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-export function parseNumeric(v: string): number | null {
-  const cleaned = v.trim().replace(/\s/g, "").replace(/(?:cm|m)(?:\^?[23]|[²³])?$/i, "").replace(",", ".");
-  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(cleaned)) return null;
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? n : null;
 }
 
 export function checkAnswer(key: AnswerKey, raw: string): boolean {

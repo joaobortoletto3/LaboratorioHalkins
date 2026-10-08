@@ -5,6 +5,7 @@ import type { GameEvent, GameState, Note, StateResponse, ValidateResponse } from
 import { applyResult, createInitialState, markRoomStarted, normalizeStreak } from "@/lib/game";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { uid } from "@/lib/utils";
+import { isComplementaryChallenge } from "@/lib/complementary";
 
 const STATE_KEY = "hawkins_state_v1";
 const NOTES_KEY = "hawkins_notes_v1";
@@ -117,7 +118,7 @@ export function HawkinsProvider({ children }: { children: ReactNode }) {
     async (challengeId: string, answer: string): Promise<SubmitResult> => {
       const current = stateRef.current;
       if (!current) return { status: "error", title: "SYSTEM FAILURE", message: "Dossiê ainda não carregado.", events: [] };
-      if (!challengeId.startsWith("t-") && current.profile.lives <= 0) {
+      if (!isComplementaryChallenge(challengeId) && !challengeId.startsWith("t-") && current.profile.lives <= 0) {
         return {
           status: "blocked",
           title: "TENTATIVAS ESGOTADAS",
@@ -142,7 +143,7 @@ export function HawkinsProvider({ children }: { children: ReactNode }) {
           setState(out.state);
           evts = out.events;
         }
-        if (evts.length) setEvents((e) => [...e, ...evts.filter((x) => x.type !== "xp" || x.amount >= 20)]);
+        if (evts.length) setEvents((e) => [...e, ...evts.filter((x) => isComplementaryChallenge(challengeId) || x.type !== "xp" || x.amount >= 20)]);
         return {
           status: json.blocked ? "blocked" : json.correct ? "correct" : "incorrect",
           title: json.title,

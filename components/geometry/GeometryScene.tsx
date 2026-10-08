@@ -21,8 +21,9 @@ function Mat({ color, edge }: { color: string; edge: string }) {
 }
 
 function Solid({ shape, color, edge }: { shape: ShapeSpec; color: string; edge: string }) {
-  const s = 0.32; // escala de cena
   const d = shape.dims;
+  const extent = Math.max(d.w ?? 0, d.d ?? 0, d.a ?? 0, (d.r ?? 0) * 2, (d.h ?? 0) + (d.hp ?? 0) + (shape.kind === "capsule" ? d.r ?? 0 : 0), 1);
+  const s = 2.7 / extent;
   switch (shape.kind) {
     case "cube": {
       const a = (d.a ?? 4) * s;
@@ -43,21 +44,21 @@ function Solid({ shape, color, edge }: { shape: ShapeSpec; color: string; edge: 
     case "cylinder":
       return (
         <mesh>
-          <cylinderGeometry args={[(d.r ?? 3) * s, (d.r ?? 3) * s, (d.h ?? 6) * s * 0.6, 48]} />
+          <cylinderGeometry args={[(d.r ?? 3) * s, (d.r ?? 3) * s, (d.h ?? 6) * s, 48]} />
           <Mat color={color} edge={edge} />
         </mesh>
       );
     case "cone":
       return (
         <mesh>
-          <coneGeometry args={[(d.r ?? 3) * s, (d.h ?? 6) * s * 0.7, 48]} />
+          <coneGeometry args={[(d.r ?? 3) * s, (d.h ?? 6) * s, 48]} />
           <Mat color={color} edge={edge} />
         </mesh>
       );
     case "sphere":
       return (
         <mesh>
-          <sphereGeometry args={[(d.r ?? 3) * s * 1.1, 48, 32]} />
+          <sphereGeometry args={[(d.r ?? 3) * s, 48, 32]} />
           <Mat color={color} edge={edge} />
         </mesh>
       );
@@ -86,7 +87,7 @@ function Solid({ shape, color, edge }: { shape: ShapeSpec; color: string; edge: 
       );
     case "capsule": {
       const r = (d.r ?? 3) * s;
-      const h = (d.h ?? 6) * s * 0.7;
+      const h = (d.h ?? 6) * s;
       return (
         <group position={[0, -r * 0.4, 0]}>
           <mesh>
@@ -102,8 +103,8 @@ function Solid({ shape, color, edge }: { shape: ShapeSpec; color: string; edge: 
     }
     case "prism-pyramid": {
       const a = (d.a ?? 6) * s;
-      const h = (d.h ?? 5) * s * 0.8;
-      const hp = (d.hp ?? 4) * s * 0.8;
+      const h = (d.h ?? 5) * s;
+      const hp = (d.hp ?? 4) * s;
       return (
         <group position={[0, -hp / 3, 0]}>
           <mesh>
@@ -113,6 +114,29 @@ function Solid({ shape, color, edge }: { shape: ShapeSpec; color: string; edge: 
           <mesh position={[0, h / 2 + hp / 2, 0]} rotation={[0, Math.PI / 4, 0]}>
             <coneGeometry args={[a / Math.SQRT2, hp, 4]} />
             <Mat color={color} edge={edge} />
+          </mesh>
+        </group>
+      );
+    }
+    case "hollow-frustum": {
+      const outer = d.r * s;
+      const top = d.rt * s;
+      const hole = d.hole * s;
+      const height = d.h * s;
+      return (
+        <group>
+          <mesh>
+            <cylinderGeometry args={[top, outer, height, 64, 1, true]} />
+            <meshStandardMaterial color={color} roughness={0.45} metalness={0.35} side={2} />
+            <Edges color={edge} threshold={15} />
+          </mesh>
+          <mesh>
+            <cylinderGeometry args={[hole, hole, height, 64, 1, true]} />
+            <meshStandardMaterial color={color} roughness={0.7} side={2} />
+          </mesh>
+          <mesh position={[0, -height / 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[hole, outer, 64]} />
+            <meshStandardMaterial color={color} side={2} />
           </mesh>
         </group>
       );
