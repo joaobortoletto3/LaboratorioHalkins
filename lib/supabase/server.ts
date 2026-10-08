@@ -32,9 +32,16 @@ export function getServerSupabase(): SupabaseClient {
 
 /** Cliente administrativo (service role). Usar SOMENTE em rotas de servidor após verificar o chamador. */
 export function getAdminSupabase(): SupabaseClient {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!key) throw new SupabaseConfigurationError();
   return createClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+export class SupabaseConfigurationError extends Error {
+  constructor() {
+    super("O servidor está sem a chave administrativa do Supabase. Configure SUPABASE_SERVICE_ROLE_KEY no .env.local e reinicie o servidor.");
+    this.name = "SupabaseConfigurationError";
+  }
 }
 
 export async function getCurrentUserId(): Promise<string | null> {
@@ -44,7 +51,8 @@ export async function getCurrentUserId(): Promise<string | null> {
 }
 
 export async function isProfessor(userId: string): Promise<boolean> {
-  const admin = getAdminSupabase();
-  const { data } = await admin.from("profiles").select("role").eq("id", userId).single();
+  const sb = getServerSupabase();
+  const { data, error } = await sb.from("profiles").select("role").eq("id", userId).single();
+  if (error) throw error;
   return (data as { role?: string } | null)?.role === "professor";
 }

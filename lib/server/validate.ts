@@ -6,8 +6,8 @@ export function normalizeCode(v: string): string {
 }
 
 export function parseNumeric(v: string): number | null {
-  const cleaned = v.trim().replace(/\s/g, "").replace(/(cm|m)[²³23]?$/i, "").replace(",", ".");
-  if (!cleaned) return null;
+  const cleaned = v.trim().replace(/\s/g, "").replace(/(?:cm|m)(?:\^?[23]|[²³])?$/i, "").replace(",", ".");
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(cleaned)) return null;
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
 }

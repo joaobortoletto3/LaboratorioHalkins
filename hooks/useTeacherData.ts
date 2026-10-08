@@ -14,8 +14,8 @@ export function useStudents() {
     (async () => {
       try {
         const res = await fetch("/api/teacher/overview", { cache: "no-store" });
-        if (!res.ok) throw new Error("Falha ao carregar alunos");
         const json = (await res.json()) as { mode?: "demo" | "supabase"; students?: StudentSummary[]; error?: string };
+        if (!res.ok) throw new Error(json.error ?? "Falha ao carregar alunos");
         if (json.mode === "supabase") {
           setMode("supabase");
           if (json.students) setStudents(json.students);
@@ -26,9 +26,9 @@ export function useStudents() {
         } else {
           throw new Error("Resposta inválida ao carregar alunos.");
         }
-      } catch {
+      } catch (err) {
         setMode("supabase");
-        setError("Não foi possível carregar os alunos. Tente novamente.");
+        setError(err instanceof Error ? err.message : "Não foi possível carregar os alunos. Tente novamente.");
       }
     })();
   }, []);

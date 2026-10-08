@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getAdminSupabase, getServerSupabase } from "@/lib/supabase/server";
+import { getAdminSupabase, getServerSupabase, SupabaseConfigurationError } from "@/lib/supabase/server";
 import { DEMO_ANSWER_KEY, type AnswerKey } from "@/lib/server/answers";
 import { BLOCKED, checkAnswer, feedback } from "@/lib/server/validate";
 import { buildState, persistDiff } from "@/lib/server/state";
@@ -44,11 +44,12 @@ export async function POST(req: Request) {
     const userId = auth.user.id;
     const admin = getAdminSupabase();
 
-    const { data: row } = await admin
+    const { data: row, error: challengeError } = await admin
       .from("challenges")
       .select("correct_answer,tolerance,type,active")
       .eq("id", challengeId)
       .single();
+    if (challengeError && challengeError.code !== "PGRST116") throw challengeError;
     const ch = row as { correct_answer: string; tolerance: number; type: "numeric" | "code"; active: boolean } | null;
     if (!ch || !ch.active) return NextResponse.json({ error: "Desafio indisponível." }, { status: 404 });
 
@@ -69,7 +70,11 @@ export async function POST(req: Request) {
     const { state, events } = applyResult(before, challengeId, answer, correct);
     await persistDiff(admin, userId, before, state);
     return NextResponse.json<ValidateResponse>({ correct, ...feedback(correct, challengeId), state, events });
-  } catch {
+  } catch (error) {
+    if (error instanceof SupabaseConfigurationError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    console.error("Falha ao validar desafio:", error instanceof Error ? error.message : "Falha na consulta ou gravação do Supabase");
     return NextResponse.json({ error: "SYSTEM FAILURE. Não foi possível validar o código agora." }, { status: 500 });
   }
 }

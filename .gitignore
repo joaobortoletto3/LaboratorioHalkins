@@ -1,9 +1,12 @@
 node_modules
 .next
 .next-verify
+.next-*/
 out
 .env
 .env.local
+.env.*
+!.env.example
 *.tsbuildinfo
 .vercel
 .DS_Store

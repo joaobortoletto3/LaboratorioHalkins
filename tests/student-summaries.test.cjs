@@ -104,3 +104,117 @@ test("empty class returns no students", async () => {
 test("database errors fail the overview instead of returning partial statistics", async () => {
   await assert.rejects(buildStudentSummaries(client(fixture(), "attempts")), /Database unavailable/);
 });
+
+test("state query errors fail validation instead of losing saved progress", async () => {
+  await assert.rejects(buildState(client(fixture(1), "progress"), "student-0"), /Database unavailable/);
+});
+
+test("reactor accepts 480 and equivalent numeric answers", () => {
+  const { checkAnswer } = load("lib/server/validate");
+  const { DEMO_ANSWER_KEY } = load("lib/server/answers");
+  for (const answer of ["480", "480,0", "480 cm³", "480cm3"]) {
+    assert.equal(checkAnswer(DEMO_ANSWER_KEY["c-01"], answer), true);
+  }
+  assert.equal(checkAnswer(DEMO_ANSWER_KEY["c-01"], "48"), false);
+});
+
+// Compute the answers independently from the dimensions in the public questions.
+function calculatedAnswers() {
+  const { ROOMS, ALL_CHALLENGES } = load("lib/data/rooms");
+  const dims = (id) => ROOMS.find((r) => r.challengeId === id).shape.dims;
+  const datum = (id, index) => Number(ALL_CHALLENGES.find((c) => c.id === id).data[index].value.split(" ")[0]);
+  const cylinder = dims("c-01");
+  const box = dims("c-02");
+  const tank = dims("c-03");
+  const machine = dims("c-04");
+  const sphere = dims("c-05");
+  const answers = {
+    "c-01": datum("c-01", 2) * cylinder.r ** 2 * cylinder.h,
+    "c-02": 2 * (box.w * box.d + box.w * box.h + box.d * box.h),
+    "c-03": datum("c-03", 2) * tank.r ** 2 * tank.h + (2 / 3) * datum("c-03", 2) * tank.r ** 3,
+    "c-04": machine.a ** 2 * machine.h + machine.a ** 2 * machine.hp / 3,
+    "c-05": (4 / 3) * datum("c-05", 1) * sphere.r ** 3,
+    "t-01": datum("t-01", 0) ** 3,
+    "t-02": datum("t-02", 2) * datum("t-02", 0) ** 2 * datum("t-02", 1) / 3,
+    "t-03": datum("t-03", 0) ** 2 * datum("t-03", 1) / 3,
+  };
+  answers["c-06"] = answers["c-01"] - answers["c-03"] + answers["c-05"];
+  answers["f-011"] = `${answers["c-01"]}${answers["c-02"]}${answers["c-04"]}7B`;
+  return answers;
+}
+
+test("all ten questions have mathematically correct keys and reject incorrect answers", () => {
+  const { ALL_CHALLENGES } = load("lib/data/rooms");
+  const { DEMO_ANSWER_KEY } = load("lib/server/answers");
+  const { checkAnswer } = load("lib/server/validate");
+  const answers = calculatedAnswers();
+  assert.equal(ALL_CHALLENGES.length, 10);
+  assert.deepEqual(Object.keys(DEMO_ANSWER_KEY).sort(), ALL_CHALLENGES.map((c) => c.id).sort());
+  for (const challenge of ALL_CHALLENGES) {
+    const expected = answers[challenge.id];
+    const key = DEMO_ANSWER_KEY[challenge.id];
+    assert.equal(key.answer, String(expected), challenge.id);
+    assert.equal(key.type, challenge.type, challenge.id);
+    assert.equal(checkAnswer(key, String(expected)), true, challenge.id);
+    if (challenge.type === "numeric") {
+      for (const raw of [` ${expected} `, `${expected},0`, `${expected}.0`, ...(challenge.unit ? [`${expected} ${challenge.unit}`, `${expected} ${challenge.unit.replace("³", "^3").replace("²", "^2")}`] : [])]) {
+        assert.equal(checkAnswer(key, raw), true, `${challenge.id}: ${raw}`);
+      }
+      for (const raw of [String(expected + 1), String(expected - 1), "", "abc", "NaN", "Infinity", "0x" + expected.toString(16)]) {
+        assert.equal(checkAnswer(key, raw), false, `${challenge.id}: ${raw}`);
+      }
+    } else {
+      assert.equal(checkAnswer(key, "480-352-228-7b"), true);
+      assert.equal(checkAnswer(key, "3524802287B"), false);
+      assert.equal(checkAnswer(key, "4803522287C"), false);
+    }
+  }
+});
+
+test("Supabase seed matches all ten verified answer keys", () => {
+  const sql = fs.readFileSync(path.join(root, "supabase/seed.sql"), "utf8");
+  const { DEMO_ANSWER_KEY } = load("lib/server/answers");
+  for (const [id, key] of Object.entries(DEMO_ANSWER_KEY)) {
+    const row = sql.split(/\r?\n/).find((line) => line.startsWith(`('${id}',`));
+    assert.ok(row, `Missing ${id}`);
+    const columns = row.match(/'(?:[^']|'')*'|\b\d+\b|\bnull\b|\btrue\b/g);
+    assert.equal(columns[6], `'${key.type}'`, id);
+    assert.equal(columns[10], `'${key.answer}'`, id);
+    assert.equal(Number(columns[11]), key.tolerance, id);
+  }
+});
+
+test("all correct sector answers unlock the next room and close the case", () => {
+  const { ROOMS } = load("lib/data/rooms");
+  const { createInitialState, applyResult, computeStats } = load("lib/game");
+  const { checkAnswer } = load("lib/server/validate");
+  const { DEMO_ANSWER_KEY } = load("lib/server/answers");
+  const answers = calculatedAnswers();
+  let state = createInitialState({ id: "test-student", name: "Aluno", email: "test@example.org" });
+  for (const room of ROOMS) {
+    assert.equal(state.rooms[room.id].status, "disponivel", room.id);
+    const answer = String(answers[room.challengeId]);
+    state = applyResult(state, room.challengeId, answer, checkAnswer(DEMO_ANSWER_KEY[room.challengeId], answer)).state;
+    assert.equal(state.rooms[room.id].status, "concluido", room.id);
+    assert.equal(state.profile.lives, 5);
+  }
+  assert.ok(state.caseClosedAt);
+  assert.equal(computeStats(state).progress, 100);
+  assert.equal(state.evidences.length, 7);
+});
+
+test("each training answer restores a life and awards training XP", () => {
+  const { TRAINING_CHALLENGES } = load("lib/data/rooms");
+  const { createInitialState, applyResult } = load("lib/game");
+  const { checkAnswer } = load("lib/server/validate");
+  const { DEMO_ANSWER_KEY } = load("lib/server/answers");
+  for (const challenge of TRAINING_CHALLENGES) {
+    const before = createInitialState({ id: "test-student", name: "Aluno", email: "test@example.org" });
+    before.profile.lives = 0;
+    const answer = String(calculatedAnswers()[challenge.id]);
+    const { state } = applyResult(before, challenge.id, answer, checkAnswer(DEMO_ANSWER_KEY[challenge.id], answer));
+    assert.equal(state.profile.lives, 1, challenge.id);
+    assert.equal(state.profile.xp, 5, challenge.id);
+    assert.equal(state.attempts[0].correct, true, challenge.id);
+  }
+});

@@ -46,6 +46,9 @@ export async function buildState(sb: SupabaseClient, userId: string): Promise<Ga
     sb.from("streak_logs").select("activity_date").eq("user_id", userId),
     sb.from("xp_logs").select("amount,reason,created_at").eq("user_id", userId).order("created_at"),
   ]);
+  for (const result of [p, prog, ev, ach, att, streak, xp]) {
+    if (result.error) throw result.error;
+  }
   const profile = p.data as ProfileRow | null;
   if (!profile) return null;
 
@@ -95,7 +98,7 @@ export async function persistDiff(admin: SupabaseClient, userId: string, before:
   if (newAttempts.length) {
     await admin.from("attempts").insert(
       newAttempts.map((a) => ({ user_id: userId, challenge_id: a.challengeId, answer: a.answer, correct: a.correct, created_at: a.createdAt })),
-    );
+    ).throwOnError();
   }
 
   await admin
@@ -109,7 +112,7 @@ export async function persistDiff(admin: SupabaseClient, userId: string, before:
       last_activity_date: after.profile.lastActivityDate,
       case_closed_at: after.caseClosedAt ?? null,
     })
-    .eq("id", userId);
+    .eq("id", userId).throwOnError();
 
   const changedRooms = Object.entries(after.rooms).filter(([id, r]) => JSON.stringify(before.rooms[id]) !== JSON.stringify(r));
   if (changedRooms.length) {
@@ -125,25 +128,25 @@ export async function persistDiff(admin: SupabaseClient, userId: string, before:
         duration: r.duration ?? null,
       })),
       { onConflict: "user_id,room_id" },
-    );
+    ).throwOnError();
   }
 
   const newEv = after.evidences.filter((e) => !before.evidences.includes(e));
-  if (newEv.length) await admin.from("user_evidences").insert(newEv.map((evidence_id) => ({ user_id: userId, evidence_id })));
+  if (newEv.length) await admin.from("user_evidences").insert(newEv.map((evidence_id) => ({ user_id: userId, evidence_id }))).throwOnError();
 
   const newAch = after.achievements.filter((a) => !before.achievements.includes(a));
-  if (newAch.length) await admin.from("user_achievements").insert(newAch.map((achievement_id) => ({ user_id: userId, achievement_id })));
+  if (newAch.length) await admin.from("user_achievements").insert(newAch.map((achievement_id) => ({ user_id: userId, achievement_id }))).throwOnError();
 
   const newXp = after.xpLog.slice(before.xpLog.length);
   if (newXp.length) {
-    await admin.from("xp_logs").insert(newXp.map((x) => ({ user_id: userId, amount: x.amount, reason: x.reason, created_at: x.createdAt })));
+    await admin.from("xp_logs").insert(newXp.map((x) => ({ user_id: userId, amount: x.amount, reason: x.reason, created_at: x.createdAt }))).throwOnError();
   }
 
   const newDays = after.activityDays.filter((d) => !before.activityDays.includes(d));
   if (newDays.length) {
     await admin
       .from("streak_logs")
-      .upsert(newDays.map((activity_date) => ({ user_id: userId, activity_date })), { onConflict: "user_id,activity_date" });
+      .upsert(newDays.map((activity_date) => ({ user_id: userId, activity_date })), { onConflict: "user_id,activity_date" }).throwOnError();
   }
 }
 
